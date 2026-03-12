@@ -9,7 +9,7 @@ def home(): return "Zynex Ultra Pro: ONLINE"
 def run(): app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
 
 # --- BOT CONFIGURATION ---
-# This pulls the token from Render Environment Variables safely
+# Pulls from Render Env Var 'BOT_TOKEN'. If not found, uses the string as backup.
 API_TOKEN = os.environ.get('BOT_TOKEN', '8445932879:AAH1j3IMi69XWPzusFtCh5p94xuw8BPsk4Y')
 bot = telebot.TeleBot(API_TOKEN)
 
@@ -36,10 +36,15 @@ def welcome(message):
     markup.add("⚡ Boost Now", "❓ Help")
     bot.send_message(message.chat.id, "✅ **Zynex Ultra Pro: ONLINE**\n\nSecure Mode Active. Tap a button below.", reply_markup=markup, parse_mode="Markdown")
 
+@bot.message_handler(func=lambda m: m.text == "❓ Help")
+def help_command(message):
+    bot.reply_to(message, "💡 **How to use:**\nType `/boost [FriendCode]`\nExample: `/boost GZJ-2BF`", parse_mode="Markdown")
+
 @bot.message_handler(func=lambda m: m.text == "⚡ Boost Now")
 @bot.message_handler(commands=['boost', 'like'])
 def handle_boost(message):
     user_id = message.from_user.id
+    
     if user_id not in VIP_USERS:
         if user_id not in user_usage: user_usage[user_id] = 0
         if user_usage[user_id] >= MAX_DAILY_LIMIT:
@@ -87,18 +92,3 @@ if __name__ == "__main__":
         telebot.types.BotCommand("boost", "⚡ Boost (Usage: /boost Code)")
     ])
     bot.polling(none_stop=True)
-
-        
-        if user_id not in VIP_USERS: user_usage[user_id] += 1
-        bot.send_message(message.chat.id, f"✅ **Complete!** Sent {success} likes to `{name}`.")
-    except:
-        bot.send_message(message.chat.id, "❌ Error: Profile not found.")
-
-if __name__ == "__main__":
-    Thread(target=run).start()
-    bot.set_my_commands([
-        telebot.types.BotCommand("start", "🚀 Main Menu"),
-        telebot.types.BotCommand("boost", "⚡ Boost (Usage: /boost Code)")
-    ])
-    bot.polling(none_stop=True)
-
