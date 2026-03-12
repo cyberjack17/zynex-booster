@@ -1,4 +1,4 @@
-  import telebot, requests, os, uuid, time, random
+import telebot, requests, os, uuid, time, random
 from flask import Flask
 from threading import Thread
 
@@ -9,8 +9,8 @@ def home(): return "Zynex Ultra Pro: ONLINE"
 def run(): app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
 
 # --- BOT CONFIGURATION ---
-# Your new, active token
-API_TOKEN = '8445932879:AAH1j3IMi69XWPzusFtCh5p94xuw8BPsk4Y'
+# This pulls the token from Render Environment Variables safely
+API_TOKEN = os.environ.get('BOT_TOKEN', '8445932879:AAH1j3IMi69XWPzusFtCh5p94xuw8BPsk4Y')
 bot = telebot.TeleBot(API_TOKEN)
 
 # --- SETTINGS ---
@@ -34,7 +34,7 @@ def get_safeway_token():
 def welcome(message):
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add("⚡ Boost Now", "❓ Help")
-    bot.send_message(message.chat.id, "✅ **Zynex Ultra Pro: ONLINE**\n\nOnly the new Render engine is running. Tap a button below.", reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(message.chat.id, "✅ **Zynex Ultra Pro: ONLINE**\n\nSecure Mode Active. Tap a button below.", reply_markup=markup, parse_mode="Markdown")
 
 @bot.message_handler(func=lambda m: m.text == "⚡ Boost Now")
 @bot.message_handler(commands=['boost', 'like'])
@@ -74,6 +74,20 @@ def handle_boost(message):
                 time.sleep(random.uniform(3, 5))
                 requests.post(f"https://api.avakin.com/v1/profiles/{target_id}/likes", headers={"Authorization": f"Bearer {t}"})
                 success += 1
+        
+        if user_id not in VIP_USERS: user_usage[user_id] += 1
+        bot.send_message(message.chat.id, f"✅ **Complete!** Sent {success} likes to `{name}`.")
+    except:
+        bot.send_message(message.chat.id, "❌ Error: Profile not found.")
+
+if __name__ == "__main__":
+    Thread(target=run).start()
+    bot.set_my_commands([
+        telebot.types.BotCommand("start", "🚀 Main Menu"),
+        telebot.types.BotCommand("boost", "⚡ Boost (Usage: /boost Code)")
+    ])
+    bot.polling(none_stop=True)
+
         
         if user_id not in VIP_USERS: user_usage[user_id] += 1
         bot.send_message(message.chat.id, f"✅ **Complete!** Sent {success} likes to `{name}`.")
