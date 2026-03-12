@@ -16,22 +16,39 @@ bot = telebot.TeleBot(API_TOKEN)
 user_usage = {} 
 TOTAL_LIKES_SENT = 0 
 MAX_DAILY_LIMIT = 5 
-VIP_USERS = [] # Get your ID from @userinfobot
+VIP_USERS = [] 
+
+def get_fresh_proxy():
+    """Fetches a high-speed proxy from your Geonode link."""
+    try:
+        url = "https://proxylist.geonode.com/api/proxy-list?limit=10&page=1&sort_by=lastChecked&sort_type=desc"
+        res = requests.get(url, timeout=5).json()
+        # Pick the first proxy from the list
+        p = res['data'][0]
+        # Format the proxy string (e.g., http://IP:PORT)
+        proxy_url = f"{p['protocols'][0]}://{p['ip']}:{p['port']}"
+        return {"http": proxy_url, "https": proxy_url}
+    except:
+        return None # Fallback to no proxy if API is down
 
 def get_safeway_token():
+    # Attempt to bypass using 3 different proxies
     for _ in range(3):
         try:
+            proxy = get_fresh_proxy()
             device_id = str(uuid.uuid4())
             url = "https://api.avakin.com/v1/accounts/guest"
-            ver = random.choice(["1.104.0", "1.103.0", "1.102.0"])
+            ver = random.choice(["1.104.0", "1.106.0", "1.103.0"])
             headers = {
-                "User-Agent": f"Avakin/{ver} (Android; {random.randint(10,13)})",
+                "User-Agent": f"Avakin/{ver} (Android; {random.randint(11,13)})",
                 "Content-Type": "application/json"
             }
-            res = requests.post(url, json={"device_id": device_id}, headers=headers, timeout=8)
+            
+            # Use the proxy here to hide Render's IP
+            res = requests.post(url, json={"device_id": device_id}, headers=headers, proxies=proxy, timeout=10)
+            
             if res.status_code == 200:
                 return res.json()['access_token']
-            time.sleep(2)
         except:
             continue
     return None
@@ -41,7 +58,7 @@ def welcome(message):
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add("⚡ Boost Now", "🔍 Check Info", "📊 Status")
     markup.add("❓ Help")
-    bot.send_message(message.chat.id, "✅ **Zynex Ultra Pro: ONLINE**\n\nElite Modding Suite Active. Select a module:", reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(message.chat.id, "✅ **Zynex Ultra Pro: ONLINE**\n\nProxy-Bypass Active. Select a module:", reply_markup=markup, parse_mode="Markdown")
 
 @bot.message_handler(func=lambda m: m.text == "📊 Status")
 @bot.message_handler(commands=['status'])
@@ -71,7 +88,7 @@ def get_profile_info(message):
 
     t = get_safeway_token()
     if not t:
-        bot.edit_message_text("⚠️ **Traffic Overload.** Try again.", message.chat.id, sent_msg.message_id)
+        bot.edit_message_text("⚠️ **Traffic Overload.** Proxy failed. Try again.", message.chat.id, sent_msg.message_id)
         return
 
     try:
@@ -83,7 +100,6 @@ def get_profile_info(message):
         full = requests.get(f"https://api.avakin.com/v1/users/{u_id}/profile", headers=h).json()
         lvl = full.get('level', 0)
         
-        # Rare Intel Logic
         intel = "NORMAL"
         if lvl >= 50: intel = "🔥 ELITE ACCOUNT"
         if len(u_id) < 10: intel = "💎 RARE ID"
@@ -107,7 +123,7 @@ def get_profile_info(message):
         )
         bot.edit_message_text(elite_design, message.chat.id, sent_msg.message_id, parse_mode="Markdown")
     except:
-        bot.edit_message_text("❌ **Scan Failed.** Profile encrypted.", message.chat.id, sent_msg.message_id)
+        bot.edit_message_text("❌ **Scan Failed.** Connection interrupted.", message.chat.id, sent_msg.message_id)
 
 @bot.message_handler(func=lambda m: m.text == "⚡ Boost Now")
 @bot.message_handler(commands=['boost', 'like'])
@@ -115,11 +131,9 @@ def handle_boost(message):
     global TOTAL_LIKES_SENT
     user_id = message.from_user.id
     
-    if user_id not in VIP_USERS:
-        if user_id not in user_usage: user_usage[user_id] = 0
-        if user_usage[user_id] >= MAX_DAILY_LIMIT:
-            bot.reply_to(message, "❌ **Daily Limit Reached!**")
-            return
+    if user_id not in VIP_USERS and user_usage.get(user_id, 0) >= MAX_DAILY_LIMIT:
+        bot.reply_to(message, "❌ **Daily Limit Reached!**")
+        return
 
     args = message.text.split()
     if len(args) < 2:
@@ -131,7 +145,7 @@ def handle_boost(message):
 
     search_token = get_safeway_token()
     if not search_token:
-        bot.send_message(message.chat.id, "⚠️ Traffic high. Try again.")
+        bot.send_message(message.chat.id, "⚠️ Traffic high. Proxy rotating...")
         return
 
     try:
@@ -146,7 +160,7 @@ def handle_boost(message):
         for _ in range(3):
             t = get_safeway_token()
             if t:
-                time.sleep(random.uniform(3, 5))
+                time.sleep(random.uniform(4, 7))
                 requests.post(f"https://api.avakin.com/v1/profiles/{target_id}/likes", headers={"Authorization": f"Bearer {t}"})
                 success += 1
                 TOTAL_LIKES_SENT += 1
@@ -154,7 +168,7 @@ def handle_boost(message):
         if user_id not in VIP_USERS: user_usage[user_id] += 1
         bot.send_message(message.chat.id, f"✅ **Complete!** Sent {success} likes to `{name}`.")
     except:
-        bot.send_message(message.chat.id, "❌ Error: Target lost.")
+        bot.send_message(message.chat.id, "❌ Error: Connection lost.")
 
 if __name__ == "__main__":
     Thread(target=run).start()
