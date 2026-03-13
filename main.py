@@ -16,49 +16,46 @@ bot = telebot.TeleBot(API_TOKEN)
 user_usage = {} 
 TOTAL_LIKES_SENT = 0 
 MAX_DAILY_LIMIT = 5 
-VIP_USERS = [] 
+VIP_USERS = [1059848473] # Your ID from the screenshot
 
+# --- PROXY & TOKEN ENGINE ---
 def get_fresh_proxy():
-    """Fetches a high-speed proxy from your Geonode link."""
+    """Fetches a high-anonymity proxy to bypass IP blocks."""
     try:
-        url = "https://proxylist.geonode.com/api/proxy-list?limit=10&page=1&sort_by=lastChecked&sort_type=desc"
+        url = "https://proxylist.geonode.com/api/proxy-list?limit=50&page=1&sort_by=lastChecked&sort_type=desc&anonymityLevel=elite"
         res = requests.get(url, timeout=5).json()
-        # Pick the first proxy from the list
-        p = res['data'][0]
-        # Format the proxy string (e.g., http://IP:PORT)
+        p = random.choice(res['data'][:10])
         proxy_url = f"{p['protocols'][0]}://{p['ip']}:{p['port']}"
         return {"http": proxy_url, "https": proxy_url}
     except:
-        return None # Fallback to no proxy if API is down
+        return None
 
 def get_safeway_token():
-    # Attempt to bypass using 3 different proxies
-    for _ in range(3):
+    """Attempts to generate a guest token using proxies."""
+    for _ in range(5):
         try:
             proxy = get_fresh_proxy()
             device_id = str(uuid.uuid4())
             url = "https://api.avakin.com/v1/accounts/guest"
-            ver = random.choice(["1.104.0", "1.106.0", "1.103.0"])
+            ver = random.choice(["1.104.0", "1.106.0", "1.105.0"])
             headers = {
                 "User-Agent": f"Avakin/{ver} (Android; {random.randint(11,13)})",
                 "Content-Type": "application/json"
             }
-            
-            # Use the proxy here to hide Render's IP
-            res = requests.post(url, json={"device_id": device_id}, headers=headers, proxies=proxy, timeout=10)
-            
+            res = requests.post(url, json={"device_id": device_id}, headers=headers, proxies=proxy, timeout=5)
             if res.status_code == 200:
                 return res.json()['access_token']
         except:
             continue
     return None
 
+# --- COMMAND HANDLERS ---
 @bot.message_handler(commands=['start', 'menu'])
 def welcome(message):
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add("⚡ Boost Now", "🔍 Check Info", "📊 Status")
     markup.add("❓ Help")
-    bot.send_message(message.chat.id, "✅ **Zynex Ultra Pro: ONLINE**\n\nProxy-Bypass Active. Select a module:", reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(message.chat.id, "✅ **Zynex Ultra Pro: ONLINE**\n\nElite Proxy-Bypass Active. Select a module:", reply_markup=markup, parse_mode="Markdown")
 
 @bot.message_handler(func=lambda m: m.text == "📊 Status")
 @bot.message_handler(commands=['status'])
@@ -96,10 +93,9 @@ def get_profile_info(message):
         u_data = requests.get(f"https://api.avakin.com/v1/profiles?friend_code={friend_code}", headers=h).json()
         user = u_data['users'][0]
         u_id = user['user_id']
-        
         full = requests.get(f"https://api.avakin.com/v1/users/{u_id}/profile", headers=h).json()
-        lvl = full.get('level', 0)
         
+        lvl = full.get('level', 0)
         intel = "NORMAL"
         if lvl >= 50: intel = "🔥 ELITE ACCOUNT"
         if len(u_id) < 10: intel = "💎 RARE ID"
@@ -123,7 +119,7 @@ def get_profile_info(message):
         )
         bot.edit_message_text(elite_design, message.chat.id, sent_msg.message_id, parse_mode="Markdown")
     except:
-        bot.edit_message_text("❌ **Scan Failed.** Connection interrupted.", message.chat.id, sent_msg.message_id)
+        bot.edit_message_text("❌ **Scan Failed.** Profile invalid.", message.chat.id, sent_msg.message_id)
 
 @bot.message_handler(func=lambda m: m.text == "⚡ Boost Now")
 @bot.message_handler(commands=['boost', 'like'])
@@ -137,15 +133,15 @@ def handle_boost(message):
 
     args = message.text.split()
     if len(args) < 2:
-        bot.reply_to(message, "🚀 Usage: `/boost GZJ-2BF`", parse_mode="Markdown")
+        bot.reply_to(message, "🚀 Usage: `/boost CODE`", parse_mode="Markdown")
         return
 
     friend_code = args[1].upper()
-    bot.send_message(message.chat.id, f"🛡️ **Targeting `{friend_code}`...**")
+    sent = bot.send_message(message.chat.id, f"🛡️ **Targeting `{friend_code}`...**")
 
     search_token = get_safeway_token()
     if not search_token:
-        bot.send_message(message.chat.id, "⚠️ Traffic high. Proxy rotating...")
+        bot.edit_message_text("⚠️ **Traffic High.** Proxy rotating...", message.chat.id, sent.message_id)
         return
 
     try:
@@ -154,7 +150,17 @@ def handle_boost(message):
         target_id = u_data['users'][0]['user_id']
         name = u_data['users'][0]['username']
         
-        bot.send_message(message.chat.id, f"👤 **Target Found:** {name}\n⚡ Injecting Likes...")
+        # Security Alert Design
+        fake_dev = ["samsung SM-N976N", "iphone 15 Pro", "Pixel 8 Pro"]
+        alert = (
+            f"🔔 **AVAKIN SECURITY ALERT**\n"
+            f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+            f"New login detected for `{name}`.\n"
+            f"📍 **Location:** `Global-Bypass` \n"
+            f"📱 **Device:** `{random.choice(fake_dev)}` \n\n"
+            f"⚡ **Injecting Safeway Likes...**"
+        )
+        bot.edit_message_text(alert, message.chat.id, sent.message_id, parse_mode="Markdown")
 
         success = 0
         for _ in range(3):
@@ -165,10 +171,14 @@ def handle_boost(message):
                 success += 1
                 TOTAL_LIKES_SENT += 1
         
-        if user_id not in VIP_USERS: user_usage[user_id] += 1
+        if user_id not in VIP_USERS: user_usage[user_id] = user_usage.get(user_id, 0) + 1
         bot.send_message(message.chat.id, f"✅ **Complete!** Sent {success} likes to `{name}`.")
     except:
-        bot.send_message(message.chat.id, "❌ Error: Connection lost.")
+        bot.send_message(message.chat.id, "❌ **Error:** Target lost.")
+
+@bot.message_handler(func=lambda m: m.text == "❓ Help")
+def help_msg(message):
+    bot.reply_to(message, "💡 **Zynex Ultra Pro Help**\n\n1. Use /boost [Code] to send likes.\n2. Use /info [Code] to scan a profile.")
 
 if __name__ == "__main__":
     Thread(target=run).start()
