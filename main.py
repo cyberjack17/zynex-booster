@@ -9,7 +9,7 @@ def home(): return "Zynex Ultra Pro: ONLINE"
 def run(): app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
 
 # --- BOT CONFIGURATION ---
-API_TOKEN = os.environ.get('BOT_TOKEN', '8445932879:AAH1j3IMi69XWPzusFtCh5p94xuw8BPsk4Y')
+API_TOKEN = os.environ.get('BOT_TOKEN', '8445932879:AAGSbRiEawq3zVfhL7assK-hv-g3kMjgNDk')
 bot = telebot.TeleBot(API_TOKEN)
 
 # --- SETTINGS & TRACKING ---
